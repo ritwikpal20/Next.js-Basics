@@ -1,43 +1,62 @@
 import MeetupDetail from "../../components/meetups/MeetupDetail";
+import { MongoClient, ObjectId } from "mongodb";
+import Head from "next/head";
 
-const DetailPage = () => {
+const DetailPage = (props) => {
     return (
-        <MeetupDetail
-            image="https://images.unsplash.com/photo-1619937812459-bf054619c8f8?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=1868&q=80"
-            title="First Meetup"
-            address="1street"
-        />
+        <>
+            <Head>
+                <title>{props.meetupData.title}</title>
+                <meta
+                    name="description"
+                    content={props.meetupData.description}
+                />
+            </Head>
+            <MeetupDetail
+                image={props.meetupData.image}
+                title={props.meetupData.title}
+                address={props.meetupData.address}
+            />
+        </>
     );
 };
 
 export async function getStaticPaths() {
+    const client = await MongoClient.connect(
+        "mongodb+srv://ritwikpal20:8kfCG8bnS8KOsfks@todos.q04du.mongodb.net/meetups?retryWrites=true&w=majority",
+        { useUnifiedTopology: true }
+    );
+    const db = client.db();
+    const meetupCollection = db.collection("meetups");
+    const meetups = await meetupCollection.find({}, { _id: 1 }).toArray();
+    client.close();
     return {
-        fallback: true,
-        paths: [
-            {
-                params: {
-                    meetupId: "m1",
-                },
-            },
-            {
-                params: {
-                    meetupId: "m2",
-                },
-            },
-        ],
+        fallback: false,
+        paths: meetups.map((meetup) => ({
+            params: { meetupId: meetup._id.toString() },
+        })),
     };
 }
 
 export async function getStaticProps(context) {
     const meetupId = context.params.meetupId;
+    const client = await MongoClient.connect(
+        "mongodb+srv://ritwikpal20:8kfCG8bnS8KOsfks@todos.q04du.mongodb.net/meetups?retryWrites=true&w=majority",
+        { useUnifiedTopology: true }
+    );
+    const db = client.db();
+    const meetupCollection = db.collection("meetups");
+    const selectedMeetup = await meetupCollection.findOne({
+        _id: ObjectId(meetupId),
+    });
+    client.close();
     return {
         props: {
             meetupData: {
-                id: meetupId,
-                image:
-                    "https://images.unsplash.com/photo-1619937812459-bf054619c8f8?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=1868&q=80",
-                title: "First Meetup",
-                address: "1street",
+                id: selectedMeetup._id.toString(),
+                image: selectedMeetup.image,
+                title: selectedMeetup.title,
+                address: selectedMeetup.address,
             },
         },
     };

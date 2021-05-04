@@ -1,30 +1,42 @@
 import MeetupList from "../components/meetups/MeetupList";
-
-const MEETUPS = [
-    {
-        id: "m1",
-        image:
-            "https://images.unsplash.com/photo-1619937812459-bf054619c8f8?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=1868&q=80",
-        title: "First Meetup",
-        address: "1street",
-    },
-    {
-        id: "m2",
-        image:
-            "https://images.unsplash.com/photo-1619937812459-bf054619c8f8?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=1868&q=80",
-        title: "Second Meetup",
-        address: "Downtown",
-    },
-];
+import { MongoClient } from "mongodb";
+import Head from "next/head";
+import { Fragment } from "react";
 
 const HomePage = (props) => {
-    return <MeetupList meetups={props.meetups} />;
+    return (
+        <Fragment>
+            <Head>
+                <title>React Meetups</title>
+                <meta
+                    name="description"
+                    content="A place to organise all your meetups"
+                />
+            </Head>
+            <MeetupList meetups={props.meetups} />
+        </Fragment>
+    );
 };
 
 export async function getStaticProps() {
     // call api here
+    const client = await MongoClient.connect(
+        "mongodb+srv://ritwikpal20:8kfCG8bnS8KOsfks@todos.q04du.mongodb.net/meetups?retryWrites=true&w=majority",
+        { useUnifiedTopology: true }
+    );
+    const db = client.db();
+    const meetupCollection = db.collection("meetups");
+
+    const meetups = await meetupCollection.find().toArray();
     return {
-        props: { meetups: MEETUPS },
+        props: {
+            meetups: meetups.map((meetup) => ({
+                title: meetup.title,
+                image: meetup.image,
+                address: meetup.address,
+                id: meetup._id.toString(),
+            })),
+        },
         revalidate: 3600,
     };
 }
